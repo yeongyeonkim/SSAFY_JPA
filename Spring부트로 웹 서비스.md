@@ -16,7 +16,8 @@ run으로 내장 WAS를 실행한다.
 **@RestController**
 
 - 컨트롤러를 JSON을 반환하는 컨트롤러로 만들어 줍니다.
-- @ResponseBody를 각 메소드마다 선언했던 것을 한번에 사용할 수 있게 해준다.
+- @Controller 와 @ResponseBody 어노테이션이 합쳐진 것으로 리턴값에 자동으로
+  HTTP 응답데이터(body)에 자바 객체가 매핑되어 전달 된다.
 
 
 
@@ -42,8 +43,6 @@ run으로 내장 WAS를 실행한다.
 **MockMvc mvc** 
 
 웹 API를 테스트할 때 사용, 스프링 MVC 테스트의 시작점.
-
-
 
 mvc.perform(get(urlTemplate: "/hello")) // MockMvc를 통해 /hello 주소로 HTTP GET 요청을 한다.
 
@@ -93,7 +92,16 @@ build.gradle에 compile('org.projectlombok:lombok') 이라고 코드를 작성�
 
 - 선언된 모든 final 필드가 포함된 생성자를 생성해 줍니다.
 
+**@NoArgsConstructor**
 
+- 기본 생성자 자동 추가
+
+**@Builder**
+
+- 해당 클래스의 빌더 패턴 클래스 생성
+  - **빌더 패턴**(Builder pattern)이란?
+    복합 객체의 생성 과정과 표현 방법을 분리하여 동일한 생성 절차에서 서로 다른 표현 결과를 만들 수 있게 하는 패턴이다.
+- 생성자 상단에 선언 시 생성자에 포함된 필드만 빌더에 포함
 
 <hr/>
 
@@ -154,18 +162,9 @@ build.gradle에 compile('org.projectlombok:lombok') 이라고 코드를 작성�
 
 
 
-**@NoArgsConstructor**
+**toEntity()**
 
-- 기본 생성자 자동 추가
-
-
-
-**@Builder**
-
-- 해당 클래스의 빌더 패턴 클래스 생성
-- 생성자 상단에 선언 시 생성자에 포함된 필드만 빌더에 포함
-
-
+- toEntity() 메소드를 이용하여 domain을 호출.
 
 <hr/>
 
@@ -201,6 +200,22 @@ postsRepository.save() : 파라미터안에는 이제 posts의 Entity를 입력�
 
 <hr/>
 
+## DTO(Data Transfer Object)
+
+VO와 비슷한 의미로 사용이 된다.
+
+1. Data를 Object로 변환하는 객체이며, DTO에서 Object는 우리가 만드는 DTO class라고 생각
+2. Data가 포함된 객체를 한 시스템에서 다른 시스템으로 전달하는 작업을 처리하는 객체
+3. Database record의 data를 mapping 하기 위한 data object를 말한다.
+
+즉, Database에서 data를 얻어 service나 controller 등으로 보낼 때 사용하는 객체를 말한다.
+
+Key&Value로 존재하는 data를 자동화 처리된 DTO로 변환되어 손 쉽게 셋팅된 object를 받아서 사용하기 위함.
+
+
+
+<hr/>
+
 #### 등록/수정/조회 API 만들기
 
 API를 만들기 위해 총 3개의 클래스가 필요하다.
@@ -214,17 +229,32 @@ API를 만들기 위해 총 3개의 클래스가 필요하다.
 **Spring 웹 계층**
 
 1. Web Layer
+
    - 흔히 사용하는 컨트롤러(@Controller)와 JSP 등의 뷰 템플릿 영역.
    - 이외에도 필터(@Filter) 등 **외부 요청과 응답**에 대한 전반적인 영역을 말함.
+
 2. Service Layer
+
    - @Service에 사용되는 서비스 영역.
+
    - 일반적으로 Controller와 Dao의 중간 영역에서 사용.
+
    - @Transactional이 사용되어야 하는 영역이기도 하다.
+
+     - **@Transactional**
+
+       : 선언적 트랜잭션은 설정 파일이나 어노테이션을 이용해서 트랜잭션의 범위, 롤백 규칙 등을 정의.
+
 3. Repository Layer
+
    - **Database**와 같이 데이터 저장소에 접근하는 영역이다. (Dao 영역으로 이해하면 쉽다.)
+
 4. Dtos
+
    - Dto(Data Transfer Object)는 **계층 간에 데이터 교환을 위한 객체**를 이야기하며 Dtos는 이들의 영역을 얘기합니다.
+
 5. Domain Model
+
    - 모든 사람이 동일한 관점에서 이해할 수 있고 공유할 수 있도록 단순화시킨 것을 도메인 모델이라고 한다.
    - 이를테면 택시 앱에서 배차, 탑승, 요금 등이 모두 도메인이 될 수 있다.
    - VO처럼 값 객체들도 이 영역에 해당하기 때문에 무조건 데이터베이스의 테이블과 관계가 있어야만 하는 것은 아니다.
@@ -243,11 +273,53 @@ API를 만들기 위해 총 3개의 클래스가 필요하다.
 
 
 
+<hr/>
+
+###### <조회 기능 실제로 톰캣을 실행해서 확인해보기>
+
+main.resources의 application.properties에 spring.h2.console.enabled=true 옵션을 추가해준다.
+
+그 후 Application의 main 메소드를 실행한다. 정상적으로 실행됐다면 톰캣이 8080 포트로 실행.
+
+웹 브라우저에 http://localhost:8080/h2-console로 접속하고
+
+JDBC URL에 jdbc:h2:mem:testdb로 작성하여 h2를 관리할 수 있는 페이지로 이동한다.
+
+간단한 쿼리문으로(insert into ~ values ~) 데이터를 추가시키고
+
+http://localhost:8080/api/v1/posts/1 을 입력해 API 조회 기능을 테스트한다.
+
+##### [Result]
+
+```
+{"id":1,"title":"title","content":"content","author":"author"}
+```
 
 
 
+<hr/>
 
 
+### JPA Auditing으로 생성시간/수정시간 자동화하기
+
+언제 만들어졌는지, 언제 수정되었는지 등은 차후 유지보수에 있어 굉장히 중요한 정보이다.
+
+매번 DB에 Insert, Update 하기 전에 날짜 데이터를 등록/수정하는 코드는 굉장히 귀찮고 지저분해 보인다. 그래서 JPA Auditing을 사용.
+
+```
+@Getter
+@MappedSuperclass // JPA Entity 클래스들이 이 클래스(BaseTimeEntity)를 상속할 경우 필드들(createdDate, modifiedDate)도 칼럼으로 인식하도록 합니다.
+@EntityListeners(AuditingEntityListener.class) // 이 클래스에 Auditing 기능을 포함.
+public abstract class BaseTimeEntity {
+    @CreatedDate // Entity가 생성되어 저장될 때 시간이 자동 저장.
+    private LocalDateTime createdDate;
+
+    @LastModifiedDate // 조회한 Entity의 값을 변경할 때 시간이 자동 저장.
+    private LocalDateTime modifiedDate;
+}
+```
+
+위와 같이 작성한 BaseTimeEntity 클래스를 Entity 클래스에서 상속(extends)한다.
 
 
 
